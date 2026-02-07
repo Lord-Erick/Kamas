@@ -23,12 +23,12 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
 
 <script>
-  const SUPABASE_URL = "SUA_SUPABASE_URL";
-  const SUPABASE_KEY = "SUA_SUPABASE_ANON_KEY";
+  const SUPABASE_URL = "https://lhvizigovqownuzcrbuo.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxodml6aWdvdnFvd251emNyYnVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NTk3NzksImV4cCI6MjA4NjAzNTc3OX0.dYQIHo81eA1wPpw4DiTlmPXfniryzWn2vYH_p3ViR3M";
   const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  const TELEGRAM_TOKEN = "SEU_TOKEN_DO_BOT";
-  const TELEGRAM_CHAT_ID = "SEU_CHAT_ID";
+  const TELEGRAM_TOKEN = "8007201060:AAG6_BJCrR-idxGNHzzVaaaCJcVJGLecSHQ";
+  const TELEGRAM_CHAT_ID = "1491502411";
 
   const input = document.getElementById("fileInput");
   const preview = document.getElementById("preview");
@@ -66,21 +66,21 @@
       try {
         // Upload para Supabase Storage
         let { data, error: uploadError } = await supabase.storage
-          .from('uploads')
+          .from('Upload')
           .upload(fileName, file);
 
         if (uploadError) throw uploadError;
 
         // Pegar URL pública
         const { publicUrl, error: urlError } = supabase.storage
-          .from('uploads')
+          .from('Upload')
           .getPublicUrl(fileName);
 
         if (urlError) throw urlError;
 
         // Salvar metadata no banco
         const { data: dbData, error: dbError } = await supabase
-          .from('uploads')
+          .from('Upload')
           .insert([{ name: file.name, url: publicUrl, timestamp }]);
 
         if (dbError) throw dbError;
