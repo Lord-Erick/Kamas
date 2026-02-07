@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PWA Desafios - Supabase</title>
+<style>
+  body { font-family: sans-serif; padding: 2rem; }
+  .hidden { display: none; }
+  button { padding: 0.5rem 1rem; font-size: 1rem; }
+  #preview { margin-top: 1rem; max-width: 100%; }
+</style>
+</head>
+<body>
+
+<h1>📸 Desafio: Envie sua foto!</h1>
+<input type="file" id="fileInput" accept="image/*" class="hidden">
+<button onclick="enviarFoto()">Enviar foto</button>
+<img id="preview" class="hidden">
+<div id="msg"></div>
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
+
+<script>
+  const SUPABASE_URL = "SUA_SUPABASE_URL";
+  const SUPABASE_KEY = "SUA_SUPABASE_ANON_KEY";
+  const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const TELEGRAM_TOKEN = "SEU_TOKEN_DO_BOT";
+  const TELEGRAM_CHAT_ID = "SEU_CHAT_ID";
+
+  const input = document.getElementById("fileInput");
+  const preview = document.getElementById("preview");
+  const msgDiv = document.getElementById("msg");
+
+  function msg(text) { msgDiv.textContent = text; }
+
+  async function sendTelegramMessage(text) {
+    try {
+      await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: text
+        })
+      });
+    } catch (e) { console.error("Erro Telegram:", e); }
+  }
+
+  async function enviarFoto() {
+    input.click();
+    input.onchange = async () => {
+      const file = input.files[0];
+      if (!file) return;
+
+      preview.src = URL.createObjectURL(file);
+      preview.classList.remove("hidden");
+
+      const timestamp = Date.now();
+      const fileName = `${timestamp}_${file.name}`;
+
+      msg("⏳ Enviando...");
+
+      try {
+        // Upload para Supabase Storage
+        let { data, error: uploadError } = await supabase.storage
+          .from('uploads')
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+
+        // Pegar URL pública
+        const { publicUrl, error: urlError } = supabase.storage
+          .from('uploads')
+          .getPublicUrl(fileName);
+
+        if (urlError) throw urlError;
+
+        // Salvar metadata no banco
+        const { data: dbData, error: dbError } = await supabase
+          .from('uploads')
+          .insert([{ name: file.name, url: publicUrl, timestamp }]);
+
+        if (dbError) throw dbError;
+
+        msg("✅ Foto enviada com sucesso!");
+
+        // Notificar Telegram
+        sendTelegramMessage(`📸 Nova foto enviada!\nNome: ${file.name}\nLink: ${publicUrl}`);
+
+      } catch (e) {
+        console.error(e);
+        msg("❌ Erro ao enviar");
+      }
+    };
+  }
+</script>
+
+</body>
+</html>
